@@ -3,9 +3,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "KCharacter.generated.h"
-
 class USpringArmComponent;
 class UCameraComponent;
+struct FInputActionValue;
 
 UCLASS()
 class CHARACTERCLASS_API AKCharacter : public ACharacter
@@ -21,10 +21,31 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent* CameraComp;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float NormalSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float SprintSpeedMultiplier;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	float SprintSpeed;
+
 protected:
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	UFUNCTION()
+	void Move(const FInputActionValue& value);
+	UFUNCTION()
+	void StartJump(const FInputActionValue& value);
+	UFUNCTION()
+	void StopJump(const FInputActionValue& value);
+	UFUNCTION()
+	void Look(const FInputActionValue& value);
+	UFUNCTION()
+	void StartSprint(const FInputActionValue& value);
+	UFUNCTION()
+	void StopSprint(const FInputActionValue& value);
 
 };

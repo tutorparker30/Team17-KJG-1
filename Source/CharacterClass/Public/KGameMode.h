@@ -8,5 +8,8 @@ UCLASS()
 class CHARACTERCLASS_API AKGameMode : public AGameMode
 {
 	GENERATED_BODY()
+
+public:
+	AKGameMode();
 	
 };

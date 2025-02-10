@@ -9,5 +9,5 @@ void AMyActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UE_LOG(LogTemp, Log, TEXT("Written by SMW!!!"));
+	UE_LOG(LogTemp, Log, TEXT("Written by KJG!!!"));
 }

@@ -17,7 +17,7 @@ AJBombItem::AJBombItem()
 void AJBombItem::ActivateItem(AActor* Activator)
 {
 	// 5초 후 폭발 실행.
-	GetWorld()->GetTimerManager().SetTimer(ExplosionTimerHandle, this, &AJBombItem::Explode, ExplosionDelay);
+	GetWorld()->GetTimerManager().SetTimer(ExplosionTimerHandle, this, &AJBombItem::Explode, ExplosionDelay, false);
 }
 
 void AJBombItem::Explode()

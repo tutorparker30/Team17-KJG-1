@@ -1,8 +1,9 @@
 #include "JTNTItem.h"
+#include "Kismet/GameplayStatics.h"
 
 AJTNTItem::AJTNTItem()
 {
-	ExplosionDamage = 30;
+	ExplosionDamage = 30.0f;
 	ItemType = "JTNT";
 }
 
@@ -23,7 +24,15 @@ void AJTNTItem::Explode()
 				-1,
 				2.0f,
 				FColor::Red,
-				FString::Printf(TEXT("Player damaged %d by JTNTItem!"), ExplosionDamage));
+				FString::Printf(TEXT("Player damaged %.2f by JTNTItem!"), ExplosionDamage));
+			
+			UGameplayStatics::ApplyDamage(
+				Actor,
+				ExplosionDamage,
+				nullptr,
+				this,
+				UDamageType::StaticClass()
+			);
 		}
 	}
 }

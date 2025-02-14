@@ -1,4 +1,5 @@
 #include "JGiftItem.h"
+#include "JGameState.h"
 
 AJGiftItem::AJGiftItem()
 {
@@ -19,6 +20,13 @@ void AJGiftItem::Explode()
 	{
 		if (Actor && Actor->ActorHasTag("Player"))
 		{
+			if (UWorld* World = GetWorld())
+			{
+				if (AJGameState* GameState = World->GetGameState<AJGameState>())
+				{
+					GameState->AddScore(PointValue);
+				}
+			}
 			GEngine->AddOnScreenDebugMessage(
 				-1,
 				2.0f,

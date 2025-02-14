@@ -13,7 +13,7 @@ public:
 	AJTNTItem();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "JTNT")
-	int32 ExplosionDamage;
+	float ExplosionDamage;
 
 	virtual void ActivateItem(AActor* Activator) override;
 	virtual void Explode() override;

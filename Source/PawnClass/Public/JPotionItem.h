@@ -13,7 +13,7 @@ public:
 	AJPotionItem();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	int32 HealAmount;
+	float HealAmount;
 	
 	virtual void ActivateItem(AActor* Activator) override;
 };

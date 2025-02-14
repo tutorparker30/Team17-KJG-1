@@ -22,6 +22,11 @@ public:
 
 	AJPawn();
 
+	UFUNCTION(BlueprintPure, Category = "Health")
+	float GetHealth() const;
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void AddHealth(float Amount);
+
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -59,8 +64,18 @@ protected:
 
 	FVector2D LookInput;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+	float MaxHealth;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Health")
+	float Health;
+
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual float TakeDamage(
+		float DamageAmount,
+		struct FDamageEvent const& DamageEvent,
+		AController* EventInstigator,
+		AActor* DamageCauser) override;
 
 	UFUNCTION()
 	void Move(const FInputActionValue& value);
@@ -70,5 +85,8 @@ protected:
 
 	UFUNCTION()
 	void StopLook(const FInputActionValue& value);
+
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	virtual void OnDeath();
 
 };

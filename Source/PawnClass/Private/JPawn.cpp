@@ -33,6 +33,9 @@ AJPawn::AJPawn()
 
 	LookInput = FVector2D::ZeroVector;
 
+	MaxHealth = 100.0f;
+	Health = MaxHealth;
+
 }
 
 void AJPawn::Tick(float DeltaTime)
@@ -129,4 +132,43 @@ void AJPawn::Look(const FInputActionValue& value)
 void AJPawn::StopLook(const FInputActionValue& value)
 {
 	LookInput = FVector2D::ZeroVector;
+}
+
+void AJPawn::AddHealth(float Amount)
+{
+	Health = FMath::Clamp(Health + Amount, 0.0f, MaxHealth);
+	UE_LOG(LogTemp, Log, TEXT("Health increased to: %.2f"), Health);
+}
+
+float AJPawn::GetHealth() const
+{
+	return Health;
+}
+
+float AJPawn::TakeDamage(
+	float DamageAmount,
+	FDamageEvent const& DamageEvent,
+	AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	float ActualDamage = Super::TakeDamage(
+		DamageAmount,
+		DamageEvent,
+		EventInstigator,
+		DamageCauser);
+
+	Health = FMath::Clamp(Health - DamageAmount, 0.0f, MaxHealth);
+	UE_LOG(LogTemp, Warning, TEXT("Health decreased to: %.2f"), Health);
+
+	if (Health <= 0.0f)
+	{
+		OnDeath();
+	}
+	
+	return ActualDamage;
+}
+
+void AJPawn::OnDeath()
+{
+	UE_LOG(LogTemp, Error, TEXT("J is Dead!"));
 }

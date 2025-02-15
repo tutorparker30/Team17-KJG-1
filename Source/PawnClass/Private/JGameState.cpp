@@ -1,16 +1,21 @@
 #include "JGameState.h"
-#include "Kismet/GameplayStatics.h"
+#include "JGameInstance.h"
+#include "JPlayerController.h"
 #include "SpawnVolume.h"
 #include "JCoinItem.h"
+#include "Kismet/GameplayStatics.h"
 
 AJGameState::AJGameState()
+	: Score(0)
+	, SpawnedCoinCount(0)
+	, CollectedCoinCount(0)
+	, CurrentLevelIndex(0)
+	, MaxLevels(3)
+	, CurrentWaveIndex(1)
+	, MaxWaves(4)
+	, WaveDuration(5.0f)
+	, CoinsToSpawnPerWave({20, 30, 40})
 {
-	Score = 0;
-	SpawnedCoinCount = 0;
-	CollectedCoinCount = 0;
-	LevelDuration = 50.0f;
-	CurrentLevelIndex = 0;
-	MaxLevels = 9;
 }
 
 void AJGameState::BeginPlay()
@@ -27,52 +32,83 @@ int32 AJGameState::GetScore() const
 
 void AJGameState::AddScore(int32 Amount)
 {
-	Score += Amount;
-	UE_LOG(LogTemp, Warning, TEXT("Score: % d"), Score);
+	if (UJGameInstance* JGameInstance = GetJGameInstance())
+	{
+		JGameInstance->AddToScore(Amount);
+	}
 }
 
 void AJGameState::StartLevel()
 {
+	if (UJGameInstance* JGameInstance = GetJGameInstance())
+	{
+		CurrentLevelIndex = JGameInstance->CurrentLevelIndex;
+	}
+
+	CurrentWaveIndex = 1;
+	StartWave();
+	
+}
+
+void AJGameState::StartWave()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Level %d Wave %d Start!"), CurrentLevelIndex + 1, CurrentWaveIndex);
 	SpawnedCoinCount = 0;
 	CollectedCoinCount = 0;
 
-	TArray<AActor*> FoundVolumes;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpawnVolume::StaticClass(), FoundVolumes);
-
-	const int32 ItemToSpawn = 50;
-
-	for (int32 i = 0; i < ItemToSpawn; i++)
+	for (AActor* Item : CurrentWaveItems)
 	{
-		if (FoundVolumes.Num() > 0)
+		if (Item && Item->IsValidLowLevelFast())
 		{
-			ASpawnVolume* SpawnVolume = Cast<ASpawnVolume>(FoundVolumes[0]);
-			if (SpawnVolume)
+			Item->Destroy();
+		}
+	}
+	CurrentWaveItems.Empty();
+
+	int32 CoinsToSpawn = (CoinsToSpawnPerWave.IsValidIndex(CurrentWaveIndex)) ? CoinsToSpawnPerWave[CurrentWaveIndex] : 20;
+
+	if (ASpawnVolume* SpawnVolume = GetSpawnVolume())
+	{
+		for (int32 i = 0; i < CoinsToSpawn; i++)
+		{
+			if (AActor* SpawnedActor = SpawnVolume->SpawnRandomItem())
 			{
-				AActor* SpawnedActor = SpawnVolume->SpawnRandomItem();
-				if (SpawnedActor && SpawnedActor->IsA(AJCoinItem::StaticClass()))
+				if (SpawnedActor->IsA(AJCoinItem::StaticClass()))
 				{
 					SpawnedCoinCount++;
+					CurrentWaveItems.Add(SpawnedActor);
 				}
 			}
 		}
 	}
 
 	GetWorldTimerManager().SetTimer(
-		LevelTimerHandle,
+		WaveTimerHandle,
 		this,
-		&AJGameState::OnLevelTimeUp,
-		LevelDuration,
+		&AJGameState::OnWaveTimeUp,
+		WaveDuration,
 		false
 	);
-
-	UE_LOG(LogTemp, Warning, TEXT("Level %d Start!, Spawned %d Coin"),
-		CurrentLevelIndex + 1,
-		SpawnedCoinCount);
 }
 
-void AJGameState::OnLevelTimeUp()
+void AJGameState::EndWave()
 {
-	EndLevel();
+	GetWorldTimerManager().ClearTimer(WaveTimerHandle);
+
+	++CurrentWaveIndex;
+	if (CurrentWaveIndex >= MaxWaves)
+	{
+		EndLevel();
+	}
+	else
+	{
+		StartWave();
+	}
+}
+
+void AJGameState::OnWaveTimeUp()
+{
+	EndWave();
 }
 
 void AJGameState::OnCoinCollected()
@@ -81,36 +117,59 @@ void AJGameState::OnCoinCollected()
 
 	UE_LOG(LogTemp, Warning, TEXT("Coin Collected %d / %d"),
 		CollectedCoinCount,
-		SpawnedCoinCount)
+		SpawnedCoinCount);
 
 		if (SpawnedCoinCount > 0 && CollectedCoinCount >= SpawnedCoinCount)
 		{
-			EndLevel();
+			EndWave();
 		}
 }
 
 void AJGameState::EndLevel()
 {
-	GetWorldTimerManager().ClearTimer(LevelTimerHandle);
-	CurrentLevelIndex++;
+	GetWorldTimerManager().ClearTimer(WaveTimerHandle);
 
-	if (CurrentLevelIndex >= MaxLevels)
+	if (UJGameInstance* JGameInstance = GetJGameInstance())
 	{
-		OnGameOver();
-		return;
-	}
+		AddScore(Score);
+		CurrentLevelIndex++;
+		JGameInstance->CurrentLevelIndex = CurrentLevelIndex;
 
-	if (LevelMapNames.IsValidIndex(CurrentLevelIndex))
-	{
-		UGameplayStatics::OpenLevel(GetWorld(), LevelMapNames[CurrentLevelIndex]);
-	}
-	else
-	{
-		OnGameOver();
+		if (CurrentLevelIndex >= MaxLevels)
+		{
+			OnGameOver();
+			return;
+		}
+
+		if (LevelMapNames.IsValidIndex(CurrentLevelIndex))
+		{
+			UGameplayStatics::OpenLevel(GetWorld(), LevelMapNames[CurrentLevelIndex]);
+		}
+		else
+		{
+			OnGameOver();
+		}
 	}
 }
 
 void AJGameState::OnGameOver()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Game Over!!"));
+}
+
+ASpawnVolume* AJGameState::GetSpawnVolume() const
+{
+	TArray<AActor*> FoundVolumes;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpawnVolume::StaticClass(), FoundVolumes);
+	return (FoundVolumes.Num() > 0) ? Cast<ASpawnVolume>(FoundVolumes[0]) : nullptr;
+}
+
+AJPlayerController* AJGameState::GetJPlayerController() const
+{
+	return Cast<AJPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+}
+
+UJGameInstance* AJGameState::GetJGameInstance() const
+{
+	return Cast<UJGameInstance>(GetGameInstance());
 }
